@@ -199,50 +199,33 @@ const processReceipt = async (e) => {
     if (!file) return;
     setIsProcessing(true);
     
-    // 1. Show image preview and prepare base64
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setImagePreview(event.target.result);
-      // This saves the data so you can use it later if needed
-      const b64 = event.target.result.split(',')[1];
-      setBase64Image(b64); 
-    };
-    reader.readAsDataURL(file);
-    
     try {
-      // 2. Get the clean base64 string for the API call
       const b64Data = await fileToBase64(file);
+      setImagePreview(`data:${file.type};base64,${b64Data}`);
       
-      // 3. Use 1.5-flash to avoid 403/Regional restriction issues
-      const STABLE_MODEL = "gemini-1.5-flash"; 
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${STABLE_MODEL}:generateContent?key=${API_KEY}`, {
+      // Using the latest Gemini 3 Flash Preview (March 2026 current)
+      const PREVIEW_MODEL = "gemini-3-flash-preview"; 
+      
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${PREVIEW_MODEL}:generateContent?key=${API_KEY}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{
             parts: [
               { text: "Extract items, quantities, and prices from this receipt. Return ONLY JSON: {\"items\": [{\"name\": \"string\", \"price\": number, \"qty\": number}], \"tax\": number, \"service_charge\": number}" },
-              {
-                inline_data: {
-                  mime_type: file.type,
-                  data: b64Data
-                }
-              }
+              { inline_data: { mime_type: file.type, data: b64Data } }
             ]
-          }]
+          }],
+          // Gemini 3 models allow "thinking_level" to control reasoning depth
+          generationConfig: {
+            thinking_level: "low" // 'low' is great for fast OCR tasks like receipts
+          }
         })
       });
 
       const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error?.message || "API Error");
-      }
+      if (!response.ok) throw new Error(result.error?.message || "API Error");
 
-      // 4. Parse the AI response and clean up any Markdown code blocks
       const rawText = result.candidates[0].content.parts[0].text;
       const cleanJson = rawText.replace(/```json|```/g, "").trim();
       const data = JSON.parse(cleanJson);
@@ -253,10 +236,9 @@ const processReceipt = async (e) => {
         serviceCharge: data.service_charge || 0,
         currency: 'EGP'
       });
-      
       setCurrentStep(2);
     } catch (error) {
-      console.error("Scanning Error:", error);
+      console.error("Scan Error:", error);
       alert("Scan failed: " + error.message + ". Entering manual mode.");
       setCurrentStep(2);
     } finally { 
