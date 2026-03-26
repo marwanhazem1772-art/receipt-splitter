@@ -16,7 +16,17 @@ function cn(...inputs) { return twMerge(clsx(inputs)); }
 const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyDcM1K3DkVCejQg7EWZivpwRKHuXskuJAo"; 
 const MODEL_ID = "gemini-1.5-flash"; 
 
-const genAI = new GoogleGenerativeAI(API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ 
+  model: MODEL_ID,
+  // This helps prevent "Safety" 403/404 errors
+  generationConfig: {
+    temperature: 0.4,
+    topP: 1,
+    topK: 32,
+    maxOutputTokens: 2048,
+  },
+});
 
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
