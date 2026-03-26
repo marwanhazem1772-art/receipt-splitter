@@ -89,6 +89,7 @@ export default function TA2SEEMA() {
   const [currency, setCurrency] = useState('EGP');
   const [language, setLanguage] = useState('en');
   const fileInputRef = useRef(null);
+  const [base64Image, setBase64Image] = useState(null);
 
   useEffect(() => {
     const newNames = Array.from({ length: peopleCount }, (_, i) => personNames[i] || (i === 0 ? 'You' : `Friend ${i}`));
@@ -193,50 +194,76 @@ export default function TA2SEEMA() {
     localStorage.setItem('ta2seema_history', JSON.stringify(updatedHistory));
   };
 
-  const processReceipt = async (e) => {
+const processReceipt = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsProcessing(true);
     
-    // Show image preview
+    // 1. Show image preview and prepare base64
     const reader = new FileReader();
-    reader.onload = (event) => setImagePreview(event.target.result);
+    reader.onload = (event) => {
+      setImagePreview(event.target.result);
+      // This saves the data so you can use it later if needed
+      const b64 = event.target.result.split(',')[1];
+      setBase64Image(b64); 
+    };
     reader.readAsDataURL(file);
     
     try {
-      const base64Data = await fileToBase64(file);
-      const prompt = `Extract items, quantities, and prices from this receipt. Return ONLY JSON: {"items": [{"name": "string", "price": number, "qty": number}], "tax": number, "service_charge": number}`;
-// Change your fetch line to look like this:
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-goog-api-key': process.env.REACT_APP_GEMINI_API_KEY // Grab it from Vercel secrets
-  },
-  // ... the rest of your body: JSON.stringify({...})        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      // 2. Get the clean base64 string for the API call
+      const b64Data = await fileToBase64(file);
+      
+      // 3. Use 1.5-flash to avoid 403/Regional restriction issues
+      const STABLE_MODEL = "gemini-1.5-flash"; 
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${STABLE_MODEL}:generateContent?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: file.type, data: base64Data } }] }],
-          generationConfig: { response_mime_type: "application/json" }
+          contents: [{
+            parts: [
+              { text: "Extract items, quantities, and prices from this receipt. Return ONLY JSON: {\"items\": [{\"name\": \"string\", \"price\": number, \"qty\": number}], \"tax\": number, \"service_charge\": number}" },
+              {
+                inline_data: {
+                  mime_type: file.type,
+                  data: b64Data
+                }
+              }
+            ]
+          }]
         })
       });
+
       const result = await response.json();
-      const data = JSON.parse(result.candidates[0].content.parts[0].text);
+      
+      if (!response.ok) {
+        throw new Error(result.error?.message || "API Error");
+      }
+
+      // 4. Parse the AI response and clean up any Markdown code blocks
+      const rawText = result.candidates[0].content.parts[0].text;
+      const cleanJson = rawText.replace(/```json|```/g, "").trim();
+      const data = JSON.parse(cleanJson);
+
       setReceiptData({
         items: data.items.map(item => ({ id: Math.random(), ...item })),
         tax: data.tax || 0,
         serviceCharge: data.service_charge || 0,
         currency: 'EGP'
       });
-      setImagePreview(null);
+      
       setCurrentStep(2);
     } catch (error) {
-      alert("Scan failed. Entering manual mode.");
-      setImagePreview(null);
+      console.error("Scanning Error:", error);
+      alert("Scan failed: " + error.message + ". Entering manual mode.");
       setCurrentStep(2);
-    } finally { setIsProcessing(false); }
+    } finally { 
+      setIsProcessing(false); 
+      setImagePreview(null);
+    }
   };
-
   const StageIndicator = () => (
     <div className="flex flex-col items-start gap-8 mb-6">
       <button 
