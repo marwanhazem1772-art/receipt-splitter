@@ -203,7 +203,6 @@ const processReceipt = async (e) => {
       const b64Data = await fileToBase64(file);
       setImagePreview(`data:${file.type};base64,${b64Data}`);
       
-      // Using the latest Gemini 3 Flash Preview (March 2026 current)
       const PREVIEW_MODEL = "gemini-3-flash-preview"; 
       
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${PREVIEW_MODEL}:generateContent?key=${API_KEY}`, {
@@ -215,11 +214,7 @@ const processReceipt = async (e) => {
               { text: "Extract items, quantities, and prices from this receipt. Return ONLY JSON: {\"items\": [{\"name\": \"string\", \"price\": number, \"qty\": number}], \"tax\": number, \"service_charge\": number}" },
               { inline_data: { mime_type: file.type, data: b64Data } }
             ]
-          }],
-          // Gemini 3 models allow "thinking_level" to control reasoning depth
-          generationConfig: {
-            thinking_level: "low" // 'low' is great for fast OCR tasks like receipts
-          }
+          }]
         })
       });
 
