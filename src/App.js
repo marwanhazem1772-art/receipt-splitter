@@ -9,7 +9,7 @@ import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
-const API_KEY = "AIzaSyDcM1K3DkVCejQg7EWZivpwRKHuXskuJAo"; 
+const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
 const MODEL_ID = "gemini-3-flash-preview"; 
 
 const fileToBase64 = (file) => {
