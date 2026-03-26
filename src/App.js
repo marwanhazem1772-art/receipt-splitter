@@ -1,16 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+// --- ADD THIS LINE BELOW ---
+import { GoogleGenerativeAI } from "@google/generative-ai"; 
+// ---------------------------
 import { 
   Camera, Loader2, ArrowRight, ArrowLeft, Plus, Minus, 
-  Trash2, RotateCcw, PlusCircle, Share2, Check, ChevronDown, ChevronUp, Settings, X, Mail
+  Trash2, RotateCcw, PlusCircle, Share2, Check, ChevronDown, ChevronUp, Settings, X, Mail, Globe, Coins
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
 
-const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
-const MODEL_ID = "gemini-3-flash-preview"; 
+// Updated to use the Vercel Environment Variable we set up
+const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyDcM1K3DkVCejQg7EWZivpwRKHuXskuJAo"; 
+const MODEL_ID = "gemini-1.5-flash"; 
+
+const genAI = new GoogleGenerativeAI(API_KEY);
 
 const fileToBase64 = (file) => {
   return new Promise((resolve, reject) => {
