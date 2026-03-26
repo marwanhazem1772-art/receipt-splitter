@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -9,8 +8,9 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 function cn(...inputs) { return twMerge(clsx(inputs)); }
-const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyCgb2j1asZMy2QFyTeZtHUl0d3g9dU60ko";
-const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+
+const API_KEY = process.env.REACT_APP_GEMINI_API_KEY; 
+const genAI = new GoogleGenerativeAI(API_KEY);
 const MODEL_ID = "gemini-3-flash-preview"; 
 
 const fileToBase64 = (file) => {
@@ -205,8 +205,14 @@ export default function TA2SEEMA() {
     try {
       const base64Data = await fileToBase64(file);
       const prompt = `Extract items, quantities, and prices from this receipt. Return ONLY JSON: {"items": [{"name": "string", "price": number, "qty": number}], "tax": number, "service_charge": number}`;
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent?key=${API_KEY}`, {
-        method: "POST",
+// Change your fetch line to look like this:
+const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-goog-api-key': process.env.REACT_APP_GEMINI_API_KEY // Grab it from Vercel secrets
+  },
+  // ... the rest of your body: JSON.stringify({...})        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: file.type, data: base64Data } }] }],
