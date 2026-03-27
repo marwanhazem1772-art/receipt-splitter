@@ -37,7 +37,7 @@ const translations = {
     stage3: 'Stage 3', reviewItems: 'Review Items', stage4: 'Stage 4', feesCharges: 'Fees & Charges',
     stage5: 'Stage 5', theSplit: 'The Split', next: 'Next', takePhoto: 'Take Photo',
     orEnterManually: 'Or Enter Manually', addManualItem: 'Add Manual Item', totalQty: 'Total Qty',
-    egpPerUnit: 'EGP per unit', fullyAssigned: 'Fully Assigned', unitsLeft: 'unit(s) left',
+    egpPerUnit: 'EGP', fullyAssigned: 'Fully Assigned', unitsLeft: 'unit(s) left',
     autoSplit: 'Auto Split', tax: 'Tax', serviceCharge: 'Service Charge', extraFee: 'Extra Fee',
     discount: 'Discount (%)', splitTheBill: 'Split The Bill', totalBill: 'Total Bill',
     totalFor: 'Total for', details: 'Details', hideShow: 'Hide / Show', shareResults: 'Share Results',
@@ -158,40 +158,24 @@ export default function TA2SEEMA() {
   };
 
   const getPersonDetails = (pIdx) => {
-  const assignedItems = receiptData.items.map((item, itemIdx) => {
-    const assignedQty = getAssignedQty(itemIdx, pIdx);
+    const assignedItems = receiptData.items.map((item, itemIdx) => {
+      const qty = getAssignedQty(itemIdx, pIdx);
+      return qty > 0 ? { name: item.name, qty, price: item.price * qty, unitPrice: item.price } : null;
+    }).filter(Boolean);
     
-    // NEW: Calculate the price for ONE unit
-    const unitPrice = item.price / item.qty; 
+    const subtotal = assignedItems.reduce((sum, i) => sum + i.price, 0);
+    const totalBill = getTotalBill();
+    const subtotalBill = receiptData.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const feesTotal = totalBill - subtotalBill;
+    const feesShare = feesTotal / personNames.length;
     
-    // NEW: Calculate the price for the specific amount THIS person is taking
-    const personPriceShare = unitPrice * assignedQty;
-
-    return assignedQty > 0 
-      ? { 
-          name: item.name, 
-          qty: assignedQty, 
-          price: personPriceShare, // This is now their actual share
-          unitPrice: unitPrice 
-        } 
-      : null;
-  }).filter(Boolean);
-  
-  const subtotal = assignedItems.reduce((sum, i) => sum + i.price, 0);
-  
-  // Keep your existing fees/total logic
-  const totalBill = getTotalBill();
-  const subtotalBill = receiptData.items.reduce((sum, item) => sum + item.price, 0); 
-  const feesTotal = Math.max(0, totalBill - subtotalBill);
-  const feesShare = feesTotal / personNames.length;
-  
-  return { 
-    assignedItems,
-    subtotal, 
-    feesShare, 
-    total: Math.max(0, subtotal + feesShare) 
+    return { 
+      assignedItems,
+      subtotal, 
+      feesShare, 
+      total: Math.max(0, subtotal + feesShare) 
+    };
   };
-};
 
   const saveBillToHistory = () => {
     if (receiptData.items.length === 0) return;
