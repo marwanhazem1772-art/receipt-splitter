@@ -158,24 +158,40 @@ export default function TA2SEEMA() {
   };
 
   const getPersonDetails = (pIdx) => {
-    const assignedItems = receiptData.items.map((item, itemIdx) => {
-      const qty = getAssignedQty(itemIdx, pIdx);
-      return qty > 0 ? { name: item.name, qty, price: item.price * qty, unitPrice: item.price } : null;
-    }).filter(Boolean);
+  const assignedItems = receiptData.items.map((item, itemIdx) => {
+    const assignedQty = getAssignedQty(itemIdx, pIdx);
     
-    const subtotal = assignedItems.reduce((sum, i) => sum + i.price, 0);
-    const totalBill = getTotalBill();
-    const subtotalBill = receiptData.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    const feesTotal = totalBill - subtotalBill;
-    const feesShare = feesTotal / personNames.length;
+    // NEW: Calculate the price for ONE unit
+    const unitPrice = item.price / item.qty; 
     
-    return { 
-      assignedItems,
-      subtotal, 
-      feesShare, 
-      total: Math.max(0, subtotal + feesShare) 
-    };
+    // NEW: Calculate the price for the specific amount THIS person is taking
+    const personPriceShare = unitPrice * assignedQty;
+
+    return assignedQty > 0 
+      ? { 
+          name: item.name, 
+          qty: assignedQty, 
+          price: personPriceShare, // This is now their actual share
+          unitPrice: unitPrice 
+        } 
+      : null;
+  }).filter(Boolean);
+  
+  const subtotal = assignedItems.reduce((sum, i) => sum + i.price, 0);
+  
+  // Keep your existing fees/total logic
+  const totalBill = getTotalBill();
+  const subtotalBill = receiptData.items.reduce((sum, item) => sum + item.price, 0); 
+  const feesTotal = Math.max(0, totalBill - subtotalBill);
+  const feesShare = feesTotal / personNames.length;
+  
+  return { 
+    assignedItems,
+    subtotal, 
+    feesShare, 
+    total: Math.max(0, subtotal + feesShare) 
   };
+};
 
   const saveBillToHistory = () => {
     if (receiptData.items.length === 0) return;
