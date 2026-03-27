@@ -662,7 +662,7 @@ const processReceipt = async (e) => {
                       <>
                         <div className="flex justify-between text-sm font-bold">
                           <span className="uppercase italic text-slate-600">Subtotal</span>
-                          <span>{receiptData.items.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2)} {currency}</span>
+                         <span>{receiptData.items.reduce((sum, item) => sum + item.price, 0).toFixed(2)} {currency}</span>
                         </div>
                         {showTax && receiptData.tax > 0 && (
                           <div className="flex justify-between text-sm font-bold">
