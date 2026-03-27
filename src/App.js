@@ -171,15 +171,22 @@ const removeItem = (itemIdx) => {
   });
 };
 
-  const getTotalBill = () => {
-    const subtotal = receiptData.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    const tax = showTax ? receiptData.tax : 0;
-    const serviceCharge = showServiceCharge ? receiptData.serviceCharge : 0;
-    const extraFee = showExtraFee ? receiptData.extraFee : 0;
-    const subtotalWithFees = subtotal + tax + serviceCharge + extraFee;
-    const discountAmount = showDiscount ? (subtotalWithFees * (receiptData.discount / 100)) : 0;
-    return subtotalWithFees - discountAmount;
-  };
+ const getTotalBill = () => {
+  // REMOVED (* item.qty) because item.price is already the total for that row
+  const subtotal = receiptData.items.reduce((sum, item) => sum + item.price, 0);
+  
+  const tax = showTax ? (receiptData.tax || 0) : 0;
+  const serviceCharge = showServiceCharge ? (receiptData.serviceCharge || 0) : 0;
+  const extraFee = showExtraFee ? (receiptData.extraFee || 0) : 0;
+  
+  const subtotalWithFees = subtotal + tax + serviceCharge + extraFee;
+  
+  const discountAmount = showDiscount 
+    ? (subtotalWithFees * ((receiptData.discount || 0) / 100)) 
+    : 0;
+    
+  return Math.max(0, subtotalWithFees - discountAmount);
+};
 
   const getPersonDetails = (pIdx) => {
   const assignedItems = receiptData.items.map((item, itemIdx) => {
@@ -204,14 +211,14 @@ const removeItem = (itemIdx) => {
     const subtotal = assignedItems.reduce((sum, i) => sum + i.price, 0);
     const totalBill = getTotalBill();
     const subtotalBill = receiptData.items.reduce((sum, item) => sum + item.price, 0);
-    const feesTotal = totalBill - subtotalBill;
+    const feesTotal = Math.max(0, totalBill - subtotalBill);
     const feesShare = feesTotal / personNames.length;
     
     return { 
       assignedItems,
       subtotal, 
       feesShare, 
-      total: Math.max(0, subtotal + feesShare) 
+      total: subtotal + feesShare // Final amount for this person
     };
   };
 
