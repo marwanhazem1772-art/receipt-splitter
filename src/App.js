@@ -182,22 +182,24 @@ const removeItem = (itemIdx) => {
   };
 
   const getPersonDetails = (pIdx) => {
-    const assignedItems = receiptData.items.map((item, itemIdx) => {
-  const qty = getAssignedQty(itemIdx, pIdx);
-  
-  // NEW: Calculate the price for ONE single unit
-  const unitPrice = item.price / item.qty; 
-  
-  // NEW: Multiply that unit price by how many this person actually has
-  const personPrice = unitPrice * qty;
+  const assignedItems = receiptData.items.map((item, itemIdx) => {
+    const qty = getAssignedQty(itemIdx, pIdx);
+    
+    // FIX: Get the price for 1 single item (1460 / 4 = 365)
+    const unitPrice = item.price / item.qty;
+    
+    // FIX: Multiply that 365 by the 1 unit assigned to this person
+    const personPriceShare = unitPrice * qty;
 
-  return qty > 0 ? { 
-    name: item.name, 
-    qty, 
-    price: personPrice, // This is now 365, not 1460
-    unitPrice: unitPrice 
-  } : null;
-}).filter(Boolean);
+    return qty > 0 ? { 
+      name: item.name, 
+      qty, 
+      price: personPriceShare, // Now this will be 365
+      unitPrice: unitPrice 
+    } : null;
+  }).filter(Boolean);
+
+ 
     
     const subtotal = assignedItems.reduce((sum, i) => sum + i.price, 0);
     const totalBill = getTotalBill();
