@@ -145,7 +145,31 @@ export default function TA2SEEMA() {
     setAssignments(newAssignments);
   };
 
+const removeItem = (itemIdx) => {
+  // 1. Remove the item from receiptData
+  const updatedItems = receiptData.items.filter((_, idx) => idx !== itemIdx);
+  setReceiptData({ ...receiptData, items: updatedItems });
 
+  // 2. Rebuild assignments to account for shifted indexes
+  setAssignments(prev => {
+    const newAssignments = {};
+    Object.keys(prev).forEach(key => {
+      const [iIdx, pIdx] = key.split('_').map(Number);
+      
+      if (iIdx === itemIdx) {
+        // Skip this item (deleting its assignments)
+        return;
+      } else if (iIdx > itemIdx) {
+        // Shift index down by 1 for items that come after the deleted one
+        newAssignments[`${iIdx - 1}_${pIdx}`] = prev[key];
+      } else {
+        // Keep index as is for items before the deleted one
+        newAssignments[`${iIdx}_${pIdx}`] = prev[key];
+      }
+    });
+    return newAssignments;
+  });
+};
 
   const getTotalBill = () => {
     const subtotal = receiptData.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -406,24 +430,57 @@ const processReceipt = async (e) => {
                   return (
                     <div key={item.id} className="bg-white p-5 rounded-[28px] border border-slate-100 shadow-md">
                       <div className="flex justify-between items-start mb-4 border-b border-slate-50 pb-4">
-                        <div className="w-1/2">
-                          <input className="font-black text-slate-800 uppercase italic bg-transparent outline-none w-full" value={item.name} onChange={(e) => {
-                            const upd = [...receiptData.items]; upd[idx].name = e.target.value; setReceiptData({...receiptData, items: upd});
-                          }} />
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-black text-slate-400 uppercase">Total Qty:</span>
-                            <button onClick={() => handleItemQtyChange(idx, item.qty - 1)} className="text-slate-300 hover:text-orange-600"><Minus size={12}/></button>
-                            <input type="number" className="w-8 text-center font-black text-orange-600 text-xs bg-orange-50 rounded" value={item.qty} onChange={(e) => handleItemQtyChange(idx, parseInt(e.target.value) || 1)} />
-                            <button onClick={() => handleItemQtyChange(idx, item.qty + 1)} className="text-slate-300 hover:text-orange-600"><Plus size={12}/></button>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <input type="number" className="font-black text-slate-900 w-24 text-right outline-none text-xl italic" value={item.price} onChange={(e) => {
-                            const upd = [...receiptData.items]; upd[idx].price = parseFloat(e.target.value) || 0; setReceiptData({...receiptData, items: upd});
-                          }} />
-                          <p className="text-[9px] font-black text-slate-300 uppercase">{currency} per unit</p>
-                        </div>
-                      </div>
+  {/* LEFT SIDE: Name and Delete Button */}
+  <div className="w-1/2">
+    <div className="flex items-center gap-2">
+      {/* 1. THE DELETE BUTTON */}
+      <button 
+        type="button"
+        onClick={() => removeItem(idx)} 
+        className="text-slate-300 hover:text-red-500 transition-colors"
+      >
+        <Trash2 size={14} />
+      </button>
+
+      {/* 2. THE ITEM NAME */}
+      <input 
+        className="font-black text-slate-800 uppercase italic bg-transparent outline-none w-full" 
+        value={item.name} 
+        onChange={(e) => {
+          const upd = [...receiptData.items]; 
+          upd[idx].name = e.target.value; 
+          setReceiptData({...receiptData, items: upd});
+        }} 
+      />
+    </div>
+
+    {/* QUANTITY CONTROLS (Keep these as they were) */}
+    <div className="flex items-center gap-2 mt-1">
+      <span className="text-[10px] font-black text-slate-400 uppercase">Total Qty:</span>
+      <button onClick={() => handleItemQtyChange(idx, item.qty - 1)} className="text-slate-300 hover:text-orange-600"><Minus size={12}/></button>
+      <input type="number" className="w-8 text-center font-black text-orange-600 text-xs bg-orange-50 rounded" value={item.qty} onChange={(e) => handleItemQtyChange(idx, parseInt(e.target.value) || 1)} />
+      <button onClick={() => handleItemQtyChange(idx, item.qty + 1)} className="text-slate-300 hover:text-orange-600"><Plus size={12}/></button>
+    </div>
+  </div>
+  
+  {/* RIGHT SIDE: Price and Unit Calculation */}
+  <div className="text-right">
+    <input 
+      type="number" 
+      className="font-black text-slate-900 w-24 text-right outline-none text-xl italic" 
+      value={item.price} 
+      onChange={(e) => {
+        const upd = [...receiptData.items]; 
+        upd[idx].price = parseFloat(e.target.value) || 0; 
+        setReceiptData({...receiptData, items: upd});
+      }} 
+    />
+    {/* 3. THE UNIT PRICE MATH */}
+    <p className="text-[9px] font-black text-orange-500 uppercase">
+      {item.qty > 0 ? (item.price / item.qty).toFixed(2) : 0} {currency} each
+    </p>
+  </div>
+</div>
 
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between mb-3">
