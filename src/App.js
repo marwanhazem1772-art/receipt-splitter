@@ -208,7 +208,9 @@ const removeItem = (itemIdx) => {
 
  
     
-    const subtotal = assignedItems.reduce((sum, i) => sum + i.price, 0);
+   // Inside getPersonDetails(pIdx):
+const subtotal = assignedItems.reduce((sum, i) => sum + i.price, 0); 
+// Note: We removed the "* i.qty" here!
     const totalBill = getTotalBill();
     const subtotalBill = receiptData.items.reduce((sum, item) => sum + item.price, 0);
     const feesTotal = Math.max(0, totalBill - subtotalBill);
