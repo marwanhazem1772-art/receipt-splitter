@@ -127,11 +127,23 @@ export default function TA2SEEMA() {
     }
   };
 
-  const handleItemQtyChange = (idx, newVal) => {
-    const updatedItems = [...receiptData.items];
-    updatedItems[idx].qty = Math.max(1, newVal);
-    setReceiptData({ ...receiptData, items: updatedItems });
-  };
+ const handleItemQtyChange = (idx, newQty) => {
+  if (newQty < 1) return; // Stop at 1
+
+  const upd = [...receiptData.items];
+  const item = upd[idx];
+
+  // 1. Math: Find the cost of exactly 1 item (e.g., 1460 / 4 = 365)
+  const unitPrice = item.price / item.qty;
+
+  // 2. Update the number
+  item.qty = newQty;
+
+  // 3. Update the total price for that row (e.g., 365 * 5 = 1825)
+  item.price = unitPrice * newQty;
+
+  setReceiptData({ ...receiptData, items: upd });
+};
 
   const autoSplitItem = (itemIdx) => {
     const newAssignments = { ...assignments };
